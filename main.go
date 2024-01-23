@@ -56,7 +56,7 @@ func startConsumers(ctx context.Context, dataChan chan []byte, num int) {
 }
 
 func main() {
-	signalChannel := make(chan os.Signal, 2)
+	signalChannel := make(chan os.Signal)
 	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
 
 	dataChan := make(chan []byte)
