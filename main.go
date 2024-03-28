@@ -32,8 +32,6 @@ func startProducers(ctx context.Context, dataChan chan []byte, num int) {
 		}()
 	}
 	wg.Wait()
-	// close data channel when we know there will be no more data produced
-	close(dataChan)
 }
 
 func startConsumers(ctx context.Context, dataChan chan []byte, num int) {
@@ -43,32 +41,29 @@ func startConsumers(ctx context.Context, dataChan chan []byte, num int) {
 		go func() {
 			for {
 				select {
-				case d, ok := <-dataChan:
-					if !ok {
+				case d := <-dataChan:
+					data.ConsumeData(d)
+				case <-ctx.Done():
+					select {
+					case d := <-dataChan:
+						data.ConsumeData(d)
+					default:
 						return
 					}
-					data.ConsumeData(d)
+					fmt.Println("closing consumer")
+					wg.Done()
+					return
 				}
 			}
 		}()
 	}
 	wg.Wait()
+	return
 }
 
 func main() {
-	signalChannel := make(chan os.Signal)
-	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
-
+	ctx, _ := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	dataChan := make(chan []byte)
-	ctx, cancel := context.WithCancel(context.Background())
-
-	go func() {
-		sig := <-signalChannel
-		switch sig {
-		case syscall.SIGINT, syscall.SIGTERM:
-			cancel()
-		}
-	}()
 
 	go startConsumers(ctx, dataChan, NumOfProducers)
 	startProducers(ctx, dataChan, NumOfProducers)

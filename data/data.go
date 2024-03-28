@@ -6,8 +6,8 @@ import (
 )
 
 func GenerateData() []byte {
-	time.Sleep(time.Millisecond * 100)
-	return []byte("generating data")
+	time.Sleep(time.Second)
+	return []byte("generated data")
 }
 
 func ConsumeData(data []byte) {
